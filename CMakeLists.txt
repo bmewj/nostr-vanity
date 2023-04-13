@@ -10,9 +10,7 @@ set(SECP256K1_BUILD_TESTS OFF CACHE BOOL "Build tests.")
 set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF CACHE BOOL "Build exhaustive tests.")
 
 add_subdirectory(lib/secp256k1)
-#add_library(secp256k1 STATIC IMPORTED)
-#set_target_properties(secp256k1 PROPERTIES IMPORTED_LOCATION ${libsecp256k1_BINARY_DIR}/src/libsecp256k1.a)
 
 add_executable(nostr-vanity src/main.cpp)
 target_include_directories(nostr-vanity PUBLIC lib/secp256k1/include)
-target_link_libraries(nostr-vanity secp256k1)
+target_link_libraries(nostr-vanity secp256k1_static)
