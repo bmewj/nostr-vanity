@@ -33,12 +33,16 @@ npub1hey27ehlzp53uqjlzmuxwcq0wc... a048f87dd023d234f3c9066d6bf1ace53fffb3e7a55c8
 
 It prints out all keys matching a given prefix along with their secret key in hex.
 
+Leave this running over the weekend on a powerful machine and you could generate some pretty
+crazy vanity keys...
+
 ## Build
 
 Project uses CMake to build. Make sure this is installed on your system.
 
 ```bash
 git clone --recursive git@github.com:bmewj/nostr-vanity.git
+cd nostr-vanity
 mkdir build
 cd build
 cmake ..
