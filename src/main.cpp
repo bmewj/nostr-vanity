@@ -9,6 +9,7 @@
 #include <atomic>
 
 struct Key {
+    uint8_t padding[8];
     union {
         uint8_t bytes[32];
         uint64_t longs[4];
@@ -16,37 +17,20 @@ struct Key {
 };
 
 static bool bech32_create_bitfield(const char* text, uint64_t* mask, uint64_t* value);
-static const char* bech32(uint8_t* bytes, size_t len);
+static const char* bytes_to_bech32(uint8_t* bytes, size_t len);
+static const char* bytes_to_hex(const uint8_t* bytes, size_t len);
 
-const char* hex_string(const uint8_t* bytes, size_t len) {
-    static char buffer[1024];
-
-    char* ch = buffer;
-    for (int i = 0; i < len; ++i) {
-        snprintf(ch, 3, "%02x", bytes[i]);
-        ch += 2;
-    }
-    *ch = '\0';
-
-    return buffer;
-}
-
-static inline bool compute_pubkey(const secp256k1_context* ctx, const Key* seckey, Key* pubkey) {
+static inline void compute_pubkey(const secp256k1_context* ctx, const Key* seckey, Key* pubkey) {
     secp256k1_pubkey pubkey_raw;
     if (!secp256k1_ec_pubkey_create(ctx, &pubkey_raw, seckey->bytes)) {
-        return false;
+        return;
     }
 
-    struct {
-        uint8_t pad[8];
-        Key key;
-    } key_padded;
-
     size_t len = 33;
-    secp256k1_ec_pubkey_serialize(ctx, key_padded.pad + 7, &len, &pubkey_raw, SECP256K1_EC_COMPRESSED);
-    *pubkey = key_padded.key;
-
-    return true;
+    secp256k1_ec_pubkey_serialize(ctx, pubkey->bytes - 1, &len, &pubkey_raw, SECP256K1_EC_COMPRESSED);
+    // ec_pubkey_serialize() produces a 33 byte compressed EC public key. The first byte is unnecessary
+    // and won't be used. To avoid an extra copy, padding is added to our Key struct so that we can
+    // hand ec_pubkey_serialize() a negative index into the bytes array.
 }
 
 static void run_thread(uint64_t prefix_mask, uint64_t prefix_value, std::atomic_long* total_count) {
@@ -69,13 +53,11 @@ static void run_thread(uint64_t prefix_mask, uint64_t prefix_value, std::atomic_
 
         // Compute the pubkey
         Key pubkey;
-        if (!compute_pubkey(ctx, &seckey, &pubkey)) {
-            continue;
-        }
+        compute_pubkey(ctx, &seckey, &pubkey);
 
         // Check for the prefix
         if ((pubkey.longs[0] & prefix_mask) == prefix_value) {
-            printf("npub1%s... %s\n", bech32(pubkey.bytes, 16), hex_string(seckey.bytes, sizeof(seckey.bytes)));
+            printf("npub1%s... %s\n", bytes_to_bech32(pubkey.bytes, 16), bytes_to_hex(seckey.bytes, sizeof(seckey.bytes)));
         }
 
         // Change (one part of) the seckey
@@ -105,8 +87,8 @@ int main(int argc, const char** argv) {
     }
 
     printf("\n... represented as hex ...\n");
-    printf("  prefix to find (in hex) = %s\n", hex_string((uint8_t*)&prefix_value, sizeof(uint64_t)));
-    printf("  prefix mask    (in hex) = %s\n", hex_string((uint8_t*)&prefix_mask,  sizeof(uint64_t)));
+    printf("  prefix to find (in hex) = %s\n", bytes_to_hex((uint8_t*)&prefix_value, sizeof(uint64_t)));
+    printf("  prefix mask    (in hex) = %s\n", bytes_to_hex((uint8_t*)&prefix_mask,  sizeof(uint64_t)));
     printf("\n");
 
     int num_threads = std::thread::hardware_concurrency();
@@ -222,7 +204,7 @@ bool bech32_create_bitfield(const char* text, uint64_t* mask, uint64_t* value) {
     return true;
 }
 
-const char* bech32(uint8_t* bytes, size_t len) {
+const char* bytes_to_bech32(uint8_t* bytes, size_t len) {
 
     int len_words = ((int)len * 8) / 5;
     int bits_rem  = ((int)len * 8) % 5;
@@ -259,4 +241,17 @@ const char* bech32(uint8_t* bytes, size_t len) {
     output[len_words] = '\0';
 
     return output;
+}
+
+const char* bytes_to_hex(const uint8_t* bytes, size_t len) {
+    static char buffer[1024];
+
+    char* ch = buffer;
+    for (int i = 0; i < len; ++i) {
+        snprintf(ch, 3, "%02x", bytes[i]);
+        ch += 2;
+    }
+    *ch = '\0';
+
+    return buffer;
 }
