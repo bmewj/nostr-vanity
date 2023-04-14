@@ -208,13 +208,13 @@ bool bech32_create_bitfield(const char* text, uint64_t* mask, uint64_t* value) {
         bytes_mask[i] = 0xff;
     }
     switch (bits_rem) {
-        case 1: bytes_mask[len_bytes - 1] = 0x80;
-        case 2: bytes_mask[len_bytes - 1] = 0xc0;
-        case 3: bytes_mask[len_bytes - 1] = 0xe0;
-        case 4: bytes_mask[len_bytes - 1] = 0xf0;
-        case 5: bytes_mask[len_bytes - 1] = 0xf8;
-        case 6: bytes_mask[len_bytes - 1] = 0xfc;
-        case 7: bytes_mask[len_bytes - 1] = 0xfe;
+        case 1: bytes_mask[len_bytes - 1] = 0x80; break;
+        case 2: bytes_mask[len_bytes - 1] = 0xc0; break;
+        case 3: bytes_mask[len_bytes - 1] = 0xe0; break;
+        case 4: bytes_mask[len_bytes - 1] = 0xf0; break;
+        case 5: bytes_mask[len_bytes - 1] = 0xf8; break;
+        case 6: bytes_mask[len_bytes - 1] = 0xfc; break;
+        case 7: bytes_mask[len_bytes - 1] = 0xfe; break;
     }
 
     *mask = *(uint64_t*)bytes_mask;
